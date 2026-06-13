@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Question for You 💌</title>
+<style>
+  :root{
+    --rose:#e8638c;
+    --rose-deep:#c23e6b;
+    --blush:#ffd9e4;
+    --cream:#fff5f7;
+    --ink:#3a2230;
+    --gold:#e6a84b;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    font-family:"Georgia","Times New Roman",serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #ffe6ee 0%, transparent 60%),
+      linear-gradient(160deg,#fff5f7 0%, #ffe3ec 45%, #ffd0e0 100%);
+    overflow-x:hidden;
+  }
+
+  /* floating hearts in the background */
+  .bg-hearts{ position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+  .bg-hearts span{
+    position:absolute; bottom:-40px;
+    font-size:18px; color:rgba(226,62,107,.25);
+    animation:rise linear infinite;
+  }
+  @keyframes rise{
+    to{ transform:translateY(-110vh) rotate(360deg); opacity:0; }
+  }
+
+  .page{
+    position:relative; z-index:1;
+    min-height:100vh;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:32px 20px;
+    animation:fade .6s ease;
+  }
+  .page.active{ display:flex; }
+  @keyframes fade{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:4px;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:12px;
+    color:var(--rose-deep);
+    margin-bottom:14px;
+  }
+
+  h1{
+    font-size:clamp(30px,7vw,56px);
+    line-height:1.1;
+    margin:0 0 10px;
+    color:var(--rose-deep);
+  }
+  p.sub{ font-size:clamp(15px,3.4vw,20px); margin:0 0 34px; opacity:.85; max-width:520px; }
+
+  /* buttons */
+  .btn{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:17px;
+    font-weight:600;
+    border:none;
+    border-radius:999px;
+    padding:15px 34px;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-yes{
+    background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+    color:#fff;
+    box-shadow:0 10px 24px rgba(194,62,107,.35);
+  }
+  .btn-yes:hover{ transform:translateY(-2px) scale(1.04); box-shadow:0 14px 30px rgba(194,62,107,.45); }
+
+  .btn-no{
+    background:#fff;
+    color:var(--rose-deep);
+    border:2px solid var(--blush);
+  }
+
+  .btn-row{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; align-items:center; }
+
+  /* the dodging No button gets absolutely positioned once it starts running */
+  #noBtn.runaway{
+    position:fixed; z-index:5;
+    /* glide smoothly to the new spot instead of teleporting */
+    transition:left .45s cubic-bezier(.34,1.56,.64,1),
+               top  .45s cubic-bezier(.34,1.56,.64,1),
+               transform .2s ease;
+  }
+  #noBtn.runaway:hover{ transform:scale(.92) rotate(-4deg); }
+
+  /* date/time + food cards */
+  .card{
+    background:rgba(255,255,255,.75);
+    backdrop-filter:blur(6px);
+    border:1px solid rgba(226,62,107,.18);
+    border-radius:24px;
+    padding:30px 26px;
+    box-shadow:0 18px 40px rgba(194,62,107,.15);
+    max-width:480px;
+    width:100%;
+  }
+
+  label.field{ display:block; text-align:left; margin:14px 0 6px; font-family:"Helvetica Neue",Arial,sans-serif; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--rose-deep); }
+  input[type="date"], input[type="time"]{
+    width:100%; padding:13px 14px; font-size:16px;
+    border:2px solid var(--blush); border-radius:14px; background:#fff; color:var(--ink);
+    font-family:inherit;
+  }
+  input:focus{ outline:none; border-color:var(--rose); }
+
+  /* food grid */
+  .food-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin:8px 0 4px;
+  }
+  @media(max-width:430px){ .food-grid{ grid-template-columns:repeat(2,1fr);} }
+  .food{
+    border:2px solid var(--blush);
+    background:#fff;
+    border-radius:18px;
+    padding:16px 8px;
+    cursor:pointer;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:14px; font-weight:600;
+    transition:all .15s ease;
+    display:flex; flex-direction:column; gap:8px; align-items:center;
+  }
+  .food .emoji{ font-size:30px; }
+  .food:hover{ transform:translateY(-3px); border-color:var(--rose); }
+  .food.selected{ background:linear-gradient(135deg,var(--rose),var(--rose-deep)); color:#fff; border-color:var(--rose-deep); }
+
+  .spacer{ height:26px; }
+
+  .ticket{
+    background:#fff;
+    border-radius:24px;
+    padding:0;
+    max-width:420px; width:100%;
+    box-shadow:0 22px 50px rgba(194,62,107,.25);
+    overflow:hidden;
+    text-align:left;
+  }
+  .ticket .top{
+    background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+    color:#fff; padding:24px 26px;
+  }
+  .ticket .top small{ letter-spacing:3px; text-transform:uppercase; font-family:"Helvetica Neue",Arial,sans-serif; font-size:11px; opacity:.9;}
+  .ticket .top h2{ margin:6px 0 0; font-size:26px; }
+  .ticket .body{ padding:22px 26px; }
+  .ticket .line{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px dashed var(--blush); }
+  .ticket .line:last-child{ border-bottom:none; }
+  .ticket .line span:first-child{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--rose-deep); }
+  .ticket .line span:last-child{ font-weight:bold; }
+
+  .hint{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:12px; opacity:.6; margin-top:18px; }
+</style>
+</head>
+<body>
+
+<div class="bg-hearts" id="bgHearts"></div>
+
+<!-- PAGE 1 -->
+<section class="page active" id="page1">
+  <div class="eyebrow">I have a question</div>
+  <h1>Will you go on<br>a date with me?</h1>
+  <p class="sub">Pick carefully... one of these buttons is very shy.</p>
+  <div class="btn-row">
+    <button class="btn btn-yes" id="yesBtn">Yes 💕</button>
+    <button class="btn btn-no" id="noBtn">No</button>
+  </div>
+</section>
+
+<!-- PAGE 2 -->
+<section class="page" id="page2">
+  <div class="eyebrow">You said yes 🥹</div>
+  <h1>When should<br>our date be?</h1>
+  <div class="card">
+    <label class="field" for="datePick">Choose a day</label>
+    <input type="date" id="datePick">
+    <label class="field" for="timePick">Choose a time</label>
+    <input type="time" id="timePick">
+    <div class="spacer"></div>
+    <button class="btn btn-yes" style="width:100%" id="toFood">Next →</button>
+  </div>
+</section>
+
+<!-- PAGE 3 -->
+<section class="page" id="page3">
+  <div class="eyebrow">Almost there</div>
+  <h1>What are we<br>in the mood for?</h1>
+  <div class="card">
+    <div class="food-grid" id="foodGrid">
+      <div class="food" data-food="Pizza 🍕"><span class="emoji">🍕</span>Pizza</div>
+      <div class="food" data-food="Sushi 🍣"><span class="emoji">🍣</span>Sushi</div>
+      <div class="food" data-food="Burgers 🍔"><span class="emoji">🍔</span>Burgers</div>
+      <div class="food" data-food="Ramen 🍜"><span class="emoji">🍜</span>Ramen</div>
+      <div class="food" data-food="Salad 🥗"><span class="emoji">🥗</span>Salad</div>
+      <div class="food" data-food="A walk 🚶"><span class="emoji">🌳</span>Just a walk</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-yes" style="width:100%" id="bookBtn">Book our date 💖</button>
+  </div>
+</section>
+
+<!-- PAGE 4 -->
+<section class="page" id="page4">
+  <div class="eyebrow">It's official</div>
+  <h1>Our date is booked! 🎉</h1>
+  <div class="ticket">
+    <div class="top">
+      <small>Date Confirmation</small>
+      <h2>You &amp; Me 💞</h2>
+    </div>
+    <div class="body">
+      <div class="line"><span>Day</span><span id="outDate">—</span></div>
+      <div class="line"><span>Time</span><span id="outTime">—</span></div>
+      <div class="line"><span>Plan</span><span id="outFood">—</span></div>
+      <div class="line"><span>Status</span><span style="color:var(--rose-deep)">Confirmed ✓</span></div>
+    </div>
+  </div>
+  <p class="hint">I can't wait. 💌</p>
+</section>
+
+<script>
+  /* ---------- background hearts ---------- */
+  const bg = document.getElementById('bgHearts');
+  for(let i=0;i<18;i++){
+    const s=document.createElement('span');
+    s.textContent='❤';
+    s.style.left=Math.random()*100+'vw';
+    s.style.fontSize=(12+Math.random()*22)+'px';
+    s.style.animationDuration=(6+Math.random()*8)+'s';
+    s.style.animationDelay=(Math.random()*8)+'s';
+    bg.appendChild(s);
+  }
+
+  /* ---------- page navigation ---------- */
+  function show(id){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  /* ---------- the runaway "No" button ---------- */
+  const noBtn = document.getElementById('noBtn');
+
+  function dodge(){
+    // On the very first dodge, lock the button to its current on-screen
+    // position BEFORE switching to fixed, so the glide starts from where
+    // it already sits instead of snapping.
+    if(!noBtn.classList.contains('runaway')){
+      const r = noBtn.getBoundingClientRect();
+      noBtn.style.left = r.left + 'px';
+      noBtn.style.top  = r.top  + 'px';
+      noBtn.classList.add('runaway');
+      // force the browser to register the start position before moving
+      void noBtn.offsetWidth;
+    }
+    const bw = noBtn.offsetWidth, bh = noBtn.offsetHeight;
+    const maxX = window.innerWidth  - bw - 16;
+    const maxY = window.innerHeight - bh - 16;
+    const x = Math.max(16, Math.random()*maxX);
+    const y = Math.max(16, Math.random()*maxY);
+    noBtn.style.left = x+'px';
+    noBtn.style.top  = y+'px';
+  }
+  // dodge on hover (desktop) and on any attempt to touch/tap (mobile)
+  noBtn.addEventListener('mouseover', dodge);
+  noBtn.addEventListener('touchstart', function(e){ e.preventDefault(); dodge(); }, {passive:false});
+  noBtn.addEventListener('click', function(e){ e.preventDefault(); dodge(); });
+
+  /* ---------- yes -> page 2 ---------- */
+  document.getElementById('yesBtn').addEventListener('click', ()=> show('page2'));
+
+  /* ---------- page 2 -> page 3 ---------- */
+  let chosenDate='', chosenTime='';
+  document.getElementById('toFood').addEventListener('click', ()=>{
+    const d = document.getElementById('datePick').value;
+    const t = document.getElementById('timePick').value;
+    if(!d || !t){ alert('Pick a day and a time first 💕'); return; }
+    chosenDate=d; chosenTime=t;
+    show('page3');
+  });
+
+  /* ---------- food selection ---------- */
+  let chosenFood='';
+  document.querySelectorAll('.food').forEach(f=>{
+    f.addEventListener('click', ()=>{
+      document.querySelectorAll('.food').forEach(x=>x.classList.remove('selected'));
+      f.classList.add('selected');
+      chosenFood=f.dataset.food;
+    });
+  });
+
+  /* ---------- book -> page 4 ---------- */
+  document.getElementById('bookBtn').addEventListener('click', ()=>{
+    if(!chosenFood){ alert('Pick what we should do 🍕'); return; }
+    // pretty date
+    const d = new Date(chosenDate+'T00:00');
+    const niceDate = d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+    // pretty time
+    const [hh,mm] = chosenTime.split(':');
+    const hr = ((+hh+11)%12)+1;
+    const ampm = (+hh)<12?'AM':'PM';
+    const niceTime = hr+':'+mm+' '+ampm;
+
+    document.getElementById('outDate').textContent = niceDate;
+    document.getElementById('outTime').textContent = niceTime;
+    document.getElementById('outFood').textContent = chosenFood;
+    show('page4');
+  });
+</script>
+</body>
+</html>
